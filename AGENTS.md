@@ -2,6 +2,17 @@
 
 OpenStarbound is a community fork of the Starbound 1.4.4 source code. It fixes bugs, adds features, and improves performance while maintaining full mod compatibility with vanilla Starbound. The entire Starbound modding community uses OpenStarbound as the base layer — every change here ripples to thousands of mods. Treat this codebase accordingly.
 
+## Fork-Specific Documentation
+
+The following files exist in our fork for development convenience and should **not** be committed to upstream PRs:
+
+| File | Purpose |
+|------|--------|
+| `AGENTS.md` | This file — development guide for AI agents and contributors |
+| `doc/BUILD-STEAMDECK.md` | Steam Deck build environment setup (distrobox + vcpkg) |
+
+If you create additional fork-specific documentation, add it to this table so future sessions know what to exclude from upstream submissions.
+
 ## Design Philosophy
 
 **Mod compatibility is sacred.** OpenStarbound is the lowest-level foundation for all Starbound mod development. Breaking changes to existing systems break the entire ecosystem. When adding functionality:
