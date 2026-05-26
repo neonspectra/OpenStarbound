@@ -288,6 +288,8 @@ These appear in the debug overlay. Remove them before committing.
 
 **Steam Deck trackpads generate constant MouseMoveEvents** even when untouched. In auto-detection logic, require significant mouse movement magnitude (>2px) before switching input modes, or trackpad noise will flip-flop the state every frame.
 
+**`m_heldKeyEvents`/`m_edgeKeyEvents` are populated unconditionally.** In `processInput`, every `KeyDownEvent` is appended to these lists regardless of whether the event was consumed by a UI element (chat textbox, search field, etc.). The `isActionTaken()`/`isActionTakenEdge()` helpers iterate these lists to check for `InterfaceAction` bindings. If you add new `isActionTaken`/`isActionTakenEdge` calls in `updateRunning`, you **must** gate them behind `!m_mainInterface->inputFocus()` or keyboard input during chat will trigger game actions. The existing player movement block (line ~1239) does this correctly; any new action-checking code added outside that block must replicate the guard.
+
 ### Lua/Script Panes
 
 **`BaseScriptPane` doesn't have `root` callbacks.** It only gets `pane`, `widget`, and `config`. If your Lua script needs `root.getConfiguration`/`root.setConfiguration`, subclass `BaseScriptPane` and call `m_script.setLuaRoot(make_shared<LuaRoot>())` in the constructor. `LuaRoot` auto-registers the `root` callback table — do NOT also call `addCallbacks("root", ...)` or you'll crash with "Duplicate callbacks named 'root'".
