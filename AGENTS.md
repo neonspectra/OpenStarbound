@@ -262,6 +262,51 @@ These appear in the debug overlay. Remove them before committing.
 
 **ImGui** is integrated for debug overlays. It's initialized in the SDL layer and drawn each frame. Useful for quick debug UIs but lives outside the normal pane/widget system.
 
+### Remote Build and Test Workflow
+
+When the build/test machine is different from the editing machine (e.g. editing via SSH from a server, building and testing on a device with the game installed), use this workflow to iterate without cluttering the remote's git state:
+
+**Setup:** Both machines have the repo cloned at the same commit on the same branch. The remote may have its own local-only patches (e.g. platform-specific build fixes) that shouldn't be committed.
+
+**Edit locally, apply remotely:**
+```bash
+# Edit files on the local machine with proper tooling, then:
+# 1. Reset the remote's working tree for the files you're changing
+ssh remote 'cd ~/repos/OpenStarbound && git checkout -- source/client/StarClientApplication.cpp'
+
+# 2. Generate a diff from the branch base to your working tree and pipe it over
+git diff <base_commit> -- source/client/StarClientApplication.cpp \
+  | ssh remote 'cd ~/repos/OpenStarbound && git apply -'
+
+# 3. Build remotely
+ssh remote 'cd ~/repos/OpenStarbound/source && <build_command>'
+```
+
+Using `git diff <base_commit>` (not `git diff HEAD`) captures both committed and uncommitted changes relative to the remote's state. This handles the case where local commits exist that the remote hasn't pulled.
+
+**Syncing unpushed commits without network access to origin:**
+```bash
+# When the remote can't reach GitHub (slow/no auth), pipe the commit diff directly:
+git diff <old_commit>..<new_commit> -- <files> \
+  | ssh remote 'cd ~/repos/OpenStarbound && git apply -'
+```
+
+**Quick debug logging on the remote** (for throwaway diagnostics only — don't commit these):
+```bash
+# Add a Logger::info line via sed instead of round-tripping through the local machine
+ssh remote 'cd ~/repos/OpenStarbound && sed -i "<line>a\\
+\    Logger::info(\"DBG key={}\", value);" source/client/StarClientApplication.cpp'
+```
+
+Use `Logger::info` instead of `LogMap::set` when you need diagnostics in states where the `/debug` overlay isn't available (e.g. title screen). Throttle with `if (m_frameCounter % 60 == 0)` to avoid flooding the log. Check results in `dist/storage/starbound.log` or `dist/logs/starbound.log`.
+
+**Remote-only patches:** The remote may need local build fixes (e.g. link order patches for specific compilers) that shouldn't be committed. These coexist safely because `git checkout -- <files>` only resets the specific files being worked on, leaving other local modifications untouched.
+
+**Asset repacking:** Remember to repack after changing any file in `assets/opensb/`:
+```bash
+ssh remote 'cd ~/repos/OpenStarbound && LD_LIBRARY_PATH=dist dist/asset_packer -c scripts/packing.config assets/opensb dist/assets/opensb.pak'
+```
+
 ## Footguns
 
 ### Build Issues
